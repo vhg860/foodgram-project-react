@@ -6,13 +6,11 @@ volumes:
   media:
 
 services:
-
   db:
     image: postgres:13.10
     env_file: .env
     volumes:
       - pg_data_production:/var/lib/postgresql/data
-
   backend:
     image: vhg860/foodgram_backend
     env_file: .env
@@ -21,7 +19,6 @@ services:
       - media:/app/media/
     depends_on:
       - db
-
   frontend:
     image: vhg860/foodgram_frontend
     env_file: .env
@@ -30,7 +27,6 @@ services:
       - static_volume:/frontend_static/
     depends_on:
       - db
-
   gateway:
     image: vhg860/foodgram_gateway
     env_file: .env
