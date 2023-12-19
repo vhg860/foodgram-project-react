@@ -1,11 +1,12 @@
+from api.constans import (LIMIT_TEXT, MAX_LENGHT_COLOR, MAX_LENGHT_NAME,
+                          MAX_LENGHT_SLUG, MAX_LENGHT_UNIT)
+from colorfield.fields import ColorField
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
 from users.models import CustomUser
-from colorfield.fields import ColorField
+
 from .validators import ColorValidator
-from api.constans import (LIMIT_TEXT, MAX_LENGHT_COLOR, MAX_LENGHT_NAME,
-                          MAX_LENGHT_SLUG, MAX_LENGHT_UNIT)
 
 
 class Tag(models.Model):

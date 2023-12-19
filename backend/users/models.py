@@ -1,13 +1,10 @@
+from api.constans import (MAX_LENGHT_EMAIL, MAX_LENGHT_FIRST_NAME,
+                          MAX_LENGHT_LAST_NAME, MAX_LENGHT_USERNAME,
+                          TEXT_LIMIT)
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from .validators import validate_username_symbols, validate_username_not_me
-from api.constans import (
-    TEXT_LIMIT,
-    MAX_LENGHT_EMAIL,
-    MAX_LENGHT_USERNAME,
-    MAX_LENGHT_FIRST_NAME,
-    MAX_LENGHT_LAST_NAME
-)
+
+from .validators import validate_username_not_me, validate_username_symbols
 
 
 class CustomUser(AbstractUser):

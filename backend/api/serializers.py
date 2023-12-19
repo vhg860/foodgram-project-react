@@ -2,25 +2,15 @@ import base64
 
 from django.core.files.base import ContentFile
 from django.db.models import Sum
+from djoser.serializers import UserCreateSerializer, UserSerializer
+from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
-from djoser.serializers import UserCreateSerializer, UserSerializer
+from users.models import CustomUser, Subscription
 
-from recipes.models import (
-    Ingredient,
-    IngredientInRecipe,
-    Recipe,
-    Tag
-)
-from users.models import Subscription, CustomUser
-
-from .constans import (
-    DUPLICATE_SUBSCRIPTION_ERROR,
-    SELF_SUBSCRIPTION_ERROR,
-    MIN_TAG_COUNT,
-    MIN_INGREDIENT_COUNT,
-    MIN_COOKING_TIME
-)
+from .constans import (DUPLICATE_SUBSCRIPTION_ERROR, MIN_COOKING_TIME,
+                       MIN_INGREDIENT_COUNT, MIN_TAG_COUNT,
+                       SELF_SUBSCRIPTION_ERROR)
 
 
 class Base64ImageField(serializers.ImageField):

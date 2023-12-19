@@ -1,38 +1,29 @@
 from io import BytesIO
-from django.utils.timezone import now
+
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.db.models import Sum
+from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from reportlab.pdfgen import canvas
+from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                            ShoppingCart, Tag)
 from reportlab.lib.pagesizes import letter
-from rest_framework import status, viewsets, exceptions
+from reportlab.pdfgen import canvas
+from rest_framework import exceptions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Tag,
-    IngredientInRecipe
-)
 from users.models import CustomUser, Subscription
+
 from .filters import IngredientFilter, RecipeFilter
-from .permissions import IsOwnerOrAdminOrReadOnly
-from .serializers import (
-    SubscriptionSerializer,
-    TagSerializer,
-    IngredientSerializer,
-    RecipeDetailSerializer,
-    RecipeCreateUpdateSerializer,
-    RecipeInfoSerializer,
-    UserDetailSerializer
-)
 from .pagination import CustomPagination, NonePagination
+from .permissions import IsOwnerOrAdminOrReadOnly
+from .serializers import (IngredientSerializer, RecipeCreateUpdateSerializer,
+                          RecipeDetailSerializer, RecipeInfoSerializer,
+                          SubscriptionSerializer, TagSerializer,
+                          UserDetailSerializer)
 
 
 class UserViewSet(UserViewSet):
