@@ -16,7 +16,7 @@ services:
     env_file: .env
     volumes:
       - static_volume:/backend_static
-      - media:/media
+      - media:/app/media/
     depends_on:
       - db
   frontend:
@@ -31,8 +31,8 @@ services:
     image: vhg860/foodgram_gateway
     env_file: .env
     volumes:
-      - static_volume:/staticfiles/
-      - media:/media
+      - static_volume:/static/
+      - media:/app/media/
     ports:
       - 7000:80
     depends_on:
