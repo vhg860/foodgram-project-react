@@ -1,16 +1,17 @@
-from api.constans import (LIMIT_TEXT, MAX_LENGHT_COLOR, MAX_LENGHT_NAME,
-                          MAX_LENGHT_SLUG, MAX_LENGHT_UNIT)
+import random
+
 from colorfield.fields import ColorField
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
-from users.models import CustomUser
 
-from .validators import ColorValidator
+from api.constans import (LIMIT_TEXT, MAX_LENGHT_COLOR, MAX_LENGHT_NAME,
+                          MAX_LENGHT_SLUG, MAX_LENGHT_UNIT)
+from users.models import CustomUser
 
 
 class Tag(models.Model):
-    """Модель тега"""
+    """Модель тега."""
 
     name = models.CharField(
         verbose_name='Название тега',
@@ -23,7 +24,7 @@ class Tag(models.Model):
         max_length=MAX_LENGHT_COLOR,
         unique=True,
         help_text='Введите цвет тега в формате HEX (#RRGGBB)',
-        validators=[ColorValidator()],
+        default='#%06x' % random.randint(0, 0xFFFFFF),
     )
     slug = models.SlugField(
         verbose_name='Slug тега',
@@ -42,7 +43,7 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    """Модель ингредиента"""
+    """Модель ингредиента."""
 
     name = models.CharField(
         verbose_name='Название',
@@ -71,7 +72,7 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    """Модель рецепта"""
+    """Модель рецепта."""
 
     author = models.ForeignKey(
         CustomUser,
@@ -103,11 +104,20 @@ class Recipe(models.Model):
         verbose_name='Описание рецепта',
         help_text='Добавьте описание рецепта'
     )
-    cooking_time = models.PositiveIntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления (в минутах)',
         default=1,
-        validators=[MinValueValidator(1)],
-        help_text='Введите время приготовления в минутах'
+        validators=[
+            MinValueValidator(
+                1,
+                message='Время приготовления не может быть меньше 1 минуты'
+            ),
+            MaxValueValidator(
+                1000,
+                message='Время приготовления не может быть больше 1000 минут'
+            )
+        ],
+        help_text='Введите время приготовления в минутах (от 1 до 1000)'
     )
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации',
@@ -125,9 +135,7 @@ class Recipe(models.Model):
         return self.name[:LIMIT_TEXT]
 
 
-class ShoppingCart(models.Model):
-    """Модель списка покупок"""
-
+class BaseShoppingCart_Favorite(models.Model):
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
@@ -138,6 +146,13 @@ class ShoppingCart(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Рецепт'
     )
+
+    class Meta:
+        abstract = True
+
+
+class ShoppingCart(BaseShoppingCart_Favorite):
+    """Модель списка покупок."""
 
     class Meta:
         verbose_name = 'Список покупок'
@@ -157,19 +172,8 @@ class ShoppingCart(models.Model):
         )
 
 
-class Favorite(models.Model):
-    """Модель избранных рецептов"""
-
-    recipe = models.ForeignKey(
-        Recipe,
-        verbose_name='Рецепт',
-        on_delete=models.CASCADE,
-    )
-    user = models.ForeignKey(
-        CustomUser,
-        verbose_name='Пользователь',
-        on_delete=models.CASCADE,
-    )
+class Favorite(BaseShoppingCart_Favorite):
+    """Модель избранных рецептов."""
 
     class Meta:
         verbose_name = "Избранный"
@@ -190,7 +194,7 @@ class Favorite(models.Model):
 
 
 class IngredientInRecipe(models.Model):
-    """Модель связи ингредиентов в рецепте"""
+    """Модель связи ингредиентов в рецепте."""
 
     ingredient = models.ForeignKey(
         Ingredient,
@@ -203,11 +207,12 @@ class IngredientInRecipe(models.Model):
         verbose_name='Рецепт',
         related_name='ingredient_in_recipe'
     )
-    amount = models.PositiveIntegerField(
+    amount = models.PositiveSmallIntegerField(
         verbose_name="Количество ингредиента в рецепте",
         default=1,
         validators=[
-            MinValueValidator(1, message='Минимум: 1 единица')
+            MinValueValidator(1, message='Минимум: 1 единица'),
+            MaxValueValidator(1000, message='Максимум: 1000 единиц')
         ],
     )
 

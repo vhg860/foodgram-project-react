@@ -1,20 +1,20 @@
 from django.contrib import admin
 
+from api.constans import PAGE_LIMIT
+
 from .models import CustomUser, Subscription
 
 
 class BaseAdmin(admin.ModelAdmin):
-    """
-    Базовый класс для настройки административной панели Django.
-    Содержит настройки, применяемые к нескольким моделям.
-    """
+    """Базовый класс для настройки административной панели Django."""
+
     empty_value_display = '-'
-    list_per_page = 20
+    list_per_page = PAGE_LIMIT
 
 
 @admin.register(CustomUser)
 class CustomUserAdmin(BaseAdmin):
-    """Класс для настройки административной панели пользователей"""
+    """Класс для настройки административной панели пользователей."""
 
     list_display = (
         'username',
@@ -29,7 +29,7 @@ class CustomUserAdmin(BaseAdmin):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(BaseAdmin):
-    """Класс для настройки административной панели подписок"""
+    """Класс для настройки административной панели подписок."""
 
     list_display = (
         'user',

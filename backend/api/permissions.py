@@ -2,23 +2,16 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsOwnerOrAdminOrReadOnly(BasePermission):
-    """
-    Кастомное разрешение для проверки доступа к объектам.
-    Разрешает только владельцам или администраторам выполнять изменения,
-    в противном случае разрешены только безопасные методы (GET, HEAD, OPTIONS).
-    """
+    """Кастомное разрешение для проверки доступа к объектам."""
 
     def has_permission(self, request, view):
-        """Проверяет разрешение на уровне представления"""
-
+        """Проверяет разрешение на уровне представления."""
         return (request.method in SAFE_METHODS
                 or request.user.is_authenticated)
 
     def has_object_permission(self, request, view, obj):
-        """Проверяет разрешение для конкретного объекта"""
-
-        if request.method in SAFE_METHODS:
-            return True
-        if request.user.is_superuser:
-            return True
-        return obj.author == request.user
+        """Проверяет разрешение для конкретного объекта."""
+        return (
+            request.method in SAFE_METHODS
+            or obj.author == request.user
+        )

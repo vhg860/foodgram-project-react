@@ -1,14 +1,15 @@
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
 from api.constans import (MAX_LENGHT_EMAIL, MAX_LENGHT_FIRST_NAME,
                           MAX_LENGHT_LAST_NAME, MAX_LENGHT_USERNAME,
                           TEXT_LIMIT)
-from django.contrib.auth.models import AbstractUser
-from django.db import models
 
 from .validators import validate_username_not_me, validate_username_symbols
 
 
 class CustomUser(AbstractUser):
-    """Кастомная модель пользователя"""
+    """Кастомная модель пользователя."""
 
     email = models.EmailField(
         'Адрес электронной почты',
@@ -26,8 +27,7 @@ class CustomUser(AbstractUser):
     )
     first_name = models.CharField(
         'Имя',
-        max_length=MAX_LENGHT_FIRST_NAME,
-        blank=False
+        max_length=MAX_LENGHT_FIRST_NAME
     )
     last_name = models.CharField(
         'Фамилия',
@@ -48,7 +48,7 @@ class CustomUser(AbstractUser):
 
 
 class Subscription(models.Model):
-    """Модель для подписок на других пользователей"""
+    """Модель для подписок на других пользователей."""
 
     user = models.ForeignKey(
         CustomUser,
@@ -71,6 +71,9 @@ class Subscription(models.Model):
             models.UniqueConstraint(
                 fields=('user', 'author'),
                 name='unique_follow'
+            ), models.CheckConstraint(
+                name='prevent_self_follow',
+                check=~models.Q(user=models.F('author'))
             )
         ]
 

@@ -18,8 +18,15 @@ Foodgram - это веб-приложение, предоставляющее п
  
 1. Клонировать репозиторий. 
 2. Заполнить файл `env` с необходимыми переменными окружения. 
-3. Выполнить развертывание с помощью команды `docker-compose up`. 
- 
+3. Выполнить развертывание с помощью команды `docker-compose up`.
+4. Выполнить слудеющие команды:
+```
+docker compose -f docker-compose.yml exec backend python manage.py migrate
+docker compose -f docker-compose.yml exec backend python manage.py load_data
+docker compose -f docker-compose.yml exec backend python manage.py load_tags
+docker compose -f docker-compose.yml exec backend python manage.py collectstatic
+docker compose -f docker-compose.yml exec backend cp -r /app/collected_static/. /backend_static/static
+```
 ## Заполнение файлов окружения (env) 
  
 Вам нужно создать файл `.env` и заполнить его следующими переменными окружения: 

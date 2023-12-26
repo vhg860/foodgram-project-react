@@ -1,12 +1,11 @@
 from django_filters.rest_framework import FilterSet, filters
-from recipes.models import Ingredient, Recipe, Tag
+
+from recipes.models import Ingredient, Recipe
 
 
 class IngredientFilter(FilterSet):
-    """
-    Фильтр для модели Ingredient,
-    который фильтрует ингредиенты по началу названия.
-    """
+    """Фильтр модели Ingredient фильтрует ингредиенты по началу названия."""
+
     name = filters.CharFilter(lookup_expr="startswith")
 
     class Meta:
@@ -15,12 +14,10 @@ class IngredientFilter(FilterSet):
 
 
 class RecipeFilter(FilterSet):
-    """Фильтр для рецептов"""
+    """Фильтр для рецептов."""
 
-    tags = filters.ModelMultipleChoiceFilter(
-        field_name="tags__slug",
-        queryset=Tag.objects.all(),
-        to_field_name="slug"
+    tags = filters.AllValuesMultipleFilter(
+        field_name="tags__slug"
     )
     is_favorited = filters.BooleanFilter(
         method="filter_is_favorited"
@@ -34,15 +31,13 @@ class RecipeFilter(FilterSet):
         fields = ("tags", "author", "is_favorited", "is_in_shopping_cart")
 
     def filter_is_favorited(self, queryset, name, value):
-        """Фильтрация рецептов, добавленных в избранное"""
-
+        """Фильтрация рецептов, добавленных в избранное."""
         if value and self.request and self.request.user.is_authenticated:
             return queryset.filter(favorites__user=self.request.user)
         return queryset
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
-        """Фильтрация рецептов, добавленных в список покупок"""
-
+        """Фильтрация рецептов, добавленных в список покупок."""
         if value and self.request and self.request.user.is_authenticated:
             return queryset.filter(shopping_cart__user=self.request.user)
         return queryset
