@@ -4,8 +4,8 @@ from django.db import models
 from api.constans import (MAX_LENGHT_EMAIL, MAX_LENGHT_FIRST_NAME,
                           MAX_LENGHT_LAST_NAME, MAX_LENGHT_USERNAME,
                           TEXT_LIMIT)
-
-from .validators import validate_username_not_me, validate_username_symbols
+from users.validators import (validate_username_not_me,
+                              validate_username_symbols)
 
 
 class CustomUser(AbstractUser):
@@ -32,7 +32,6 @@ class CustomUser(AbstractUser):
     last_name = models.CharField(
         'Фамилия',
         max_length=MAX_LENGHT_LAST_NAME,
-        blank=False
     )
 
     USERNAME_FIELD = "email"
@@ -71,7 +70,8 @@ class Subscription(models.Model):
             models.UniqueConstraint(
                 fields=('user', 'author'),
                 name='unique_follow'
-            ), models.CheckConstraint(
+            ),
+            models.CheckConstraint(
                 name='prevent_self_follow',
                 check=~models.Q(user=models.F('author'))
             )

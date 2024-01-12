@@ -5,9 +5,15 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
 
-from api.constans import (LIMIT_TEXT, MAX_LENGHT_COLOR, MAX_LENGHT_NAME,
-                          MAX_LENGHT_SLUG, MAX_LENGHT_UNIT)
+from api.constans import (LIMIT_TEXT, MAX_AMOUNT, MAX_LENGHT_COLOR,
+                          MAX_LENGHT_NAME, MAX_LENGHT_SLUG, MAX_LENGHT_UNIT,
+                          MIN_AMOUNT)
 from users.models import CustomUser
+
+
+def generate_color():
+    """Рандомная генерация цвета для тега."""
+    return '#%06x' % random.randint(0, 0xFFFFFF)
 
 
 class Tag(models.Model):
@@ -24,7 +30,7 @@ class Tag(models.Model):
         max_length=MAX_LENGHT_COLOR,
         unique=True,
         help_text='Введите цвет тега в формате HEX (#RRGGBB)',
-        default='#%06x' % random.randint(0, 0xFFFFFF),
+        default=generate_color,
     )
     slug = models.SlugField(
         verbose_name='Slug тега',
@@ -149,12 +155,13 @@ class BaseShoppingCart_Favorite(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ['user', 'recipe']
 
 
 class ShoppingCart(BaseShoppingCart_Favorite):
     """Модель списка покупок."""
 
-    class Meta:
+    class Meta(BaseShoppingCart_Favorite.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
         default_related_name = 'shopping_cart'
@@ -175,7 +182,7 @@ class ShoppingCart(BaseShoppingCart_Favorite):
 class Favorite(BaseShoppingCart_Favorite):
     """Модель избранных рецептов."""
 
-    class Meta:
+    class Meta(BaseShoppingCart_Favorite.Meta):
         verbose_name = "Избранный"
         verbose_name_plural = "Избранные"
         default_related_name = 'favorites'
@@ -211,8 +218,8 @@ class IngredientInRecipe(models.Model):
         verbose_name="Количество ингредиента в рецепте",
         default=1,
         validators=[
-            MinValueValidator(1, message='Минимум: 1 единица'),
-            MaxValueValidator(1000, message='Максимум: 1000 единиц')
+            MinValueValidator(MIN_AMOUNT, message=f'Минимум: {MIN_AMOUNT}'),
+            MaxValueValidator(MAX_AMOUNT, message=f'Максимум: {MAX_AMOUNT}')
         ],
     )
 

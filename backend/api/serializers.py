@@ -1,17 +1,16 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db.models import Sum
-from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
-from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
-from users.models import CustomUser
-
-from .constans import (DUPLICATE_SUBSCRIPTION_ERROR, MIN_COOKING_TIME,
-                       MIN_INGREDIENT_COUNT, MIN_TAG_COUNT,
-                       SELF_SUBSCRIPTION_ERROR)
-from .fields import Base64ImageField
+from api.constans import (DUPLICATE_SUBSCRIPTION_ERROR,
+                          SELF_SUBSCRIPTION_ERROR, MIN_COOKING_TIME,
+                          MIN_INGREDIENT_COUNT, MIN_TAG_COUNT)
+from api.fields import Base64ImageField
+from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                            ShoppingCart, Tag)
+from users.models import CustomUser, Subscription
 
 
 class UserDetailSerializer(UserSerializer):
@@ -90,28 +89,9 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             and request.user.followers.filter(author=obj).exists()
         )
 
-    def validate(self, data):
-        """Проверяет валидность данных."""
-        author_id = self.context.get(
-            'request').parser_context.get("kwargs").get("id")
-        author = get_object_or_404(CustomUser, id=author_id)
-        user = self.context.get("request").user
-
-        if user.followers.filter(author=author_id).exists():
-            raise ValidationError(
-                detail=DUPLICATE_SUBSCRIPTION_ERROR,
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        if user == author:
-            raise ValidationError(
-                detail=SELF_SUBSCRIPTION_ERROR,
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        return data
-
     def get_recipes_count(self, obj):
         """Возвращает количество рецептов пользователя."""
-        return Recipe.objects.filter(author=obj).count()
+        return obj.recipes.count()
 
     def get_recipes(self, obj):
         """Возвращает информацию о рецептах пользователя."""
@@ -237,7 +217,7 @@ class RecipeDetailSerializer(serializers.ModelSerializer):
         user = self.context.get("request").user
 
         return bool(
-            user and not user.is_anonymous
+            user and user.is_authenticated
             and user.favorites.filter(recipe=obj).exists()
         )
 
@@ -246,7 +226,7 @@ class RecipeDetailSerializer(serializers.ModelSerializer):
         user = self.context.get("request").user
 
         return bool(
-            user and not user.is_anonymous
+            user and user.is_authenticated
             and user.shopping_cart.filter(recipe=obj).exists()
         )
 
@@ -331,7 +311,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         """Создает связи между рецептом и ингредиентами."""
         ingredient_instances = [
             IngredientInRecipe(
-                ingredient=ingredient["id"],
+                ingredient=Ingredient.objects.get(id=ingredient["id"]),
                 recipe=recipe,
                 amount=ingredient["amount"]
             ) for ingredient in ingredients
@@ -349,12 +329,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """Обновление существующего рецепта."""
-        instance.image = validated_data.get("image", instance.image)
-        instance.name = validated_data.get("name", instance.name)
-        instance.text = validated_data.get("text", instance.text)
-        instance.cooking_time = validated_data.get(
-            "cooking_time", instance.cooking_time
-        )
         ingredients_data = validated_data.pop("ingredients")
         tags = validated_data.pop("tags")
         instance.tags.clear()
@@ -364,9 +338,88 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             recipe=instance,
             ingredients=ingredients_data
         )
-        instance.save()
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         """Преобразует объект рецепта в сериализованный формат."""
         return RecipeDetailSerializer(instance, context=self.context).data
+
+
+class FavoriteShoppingCartSerializer(serializers.ModelSerializer):
+    """Общий сериализатор для избранного и списка покупок."""
+
+    class Meta:
+        fields = (
+            'user',
+            'recipe',
+        )
+
+    def to_representation(self, instance):
+        """Преобразует объект рецепта в сериализованный формат."""
+        return RecipeInfoSerializer(
+            instance.recipe,
+            context={'request': self.context.get('request')},
+        ).data
+
+
+class FavoriteSerializer(FavoriteShoppingCartSerializer):
+    """Сериализатор для избранных рецептов."""
+
+    class Meta(FavoriteShoppingCartSerializer.Meta):
+        model = Favorite
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Favorite.objects.all(),
+                fields=('user', 'recipe'),
+                message='Рецепт уже добавлен',
+            ),
+        ]
+
+
+class ShoppingCartSerializer(FavoriteShoppingCartSerializer):
+    """Сериализатор для списка покупок."""
+
+    class Meta(FavoriteShoppingCartSerializer.Meta):
+        model = ShoppingCart
+        validators = [
+            UniqueTogetherValidator(
+                queryset=ShoppingCart.objects.all(),
+                fields=('user', 'recipe'),
+                message='Рецепт уже добавлен',
+            ),
+        ]
+
+
+class SubscriptionInfoSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписок."""
+
+    class Meta:
+        model = Subscription
+        fields = (
+            "id",
+            "user",
+            "author",
+        )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=("user", "author"),
+                message=DUPLICATE_SUBSCRIPTION_ERROR
+            )
+        ]
+
+    def validate(self, data):
+        """Проверяет валидность данных."""
+        request = self.context.get("request")
+        if request.user == data["author"]:
+            raise serializers.ValidationError(
+                SELF_SUBSCRIPTION_ERROR
+            )
+        return data
+
+    def to_representation(self, instance):
+        """Преобразует объект в сериализованный формат."""
+        return SubscriptionSerializer(
+            instance.author,
+            context={"request": self.context.get("request")},
+        ).data

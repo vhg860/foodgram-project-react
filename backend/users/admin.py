@@ -1,8 +1,7 @@
 from django.contrib import admin
 
 from api.constans import PAGE_LIMIT
-
-from .models import CustomUser, Subscription
+from users.models import CustomUser, Subscription
 
 
 class BaseAdmin(admin.ModelAdmin):

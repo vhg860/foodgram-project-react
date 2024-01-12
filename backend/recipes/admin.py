@@ -1,9 +1,8 @@
 from django.contrib import admin
 
+from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                            ShoppingCart, Tag)
 from users.admin import BaseAdmin
-
-from .models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
-                     ShoppingCart, Tag)
 
 
 class IngredientInRecipeInline(admin.TabularInline):
@@ -50,15 +49,16 @@ class RecipeAdmin(BaseAdmin):
     list_filter = ('author', 'name', 'tags')
     inlines = (IngredientInRecipeInline,)
 
+    @admin.display(description="Число добавлений в избранное")
     def favorites_count(self, obj):
         """Число добавлений в избранное."""
         return obj.favorites.count()
 
+    @admin.display(description="Отображение ингредиентов")
     def display_ingredients(self, recipe):
         """Отображение ингредиентов через запятую."""
         return ', '.join([
-            ingredient.name for ingredient in recipe.ingredienttorecipe.all()])
-    display_ingredients.short_description = 'Отображение ингредиентов'
+            ingredients.name for ingredients in recipe.ingredients.all()])
 
 
 @admin.register(ShoppingCart)
