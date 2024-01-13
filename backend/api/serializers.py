@@ -4,9 +4,9 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from api.constans import (DUPLICATE_SUBSCRIPTION_ERROR,
-                          SELF_SUBSCRIPTION_ERROR, MIN_COOKING_TIME,
-                          MIN_INGREDIENT_COUNT, MIN_TAG_COUNT)
+from api.constans import (DUPLICATE_SUBSCRIPTION_ERROR, MIN_COOKING_TIME,
+                          MIN_INGREDIENT_COUNT, MIN_TAG_COUNT,
+                          SELF_SUBSCRIPTION_ERROR)
 from api.fields import Base64ImageField
 from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                             ShoppingCart, Tag)
@@ -311,7 +311,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         """Создает связи между рецептом и ингредиентами."""
         ingredient_instances = [
             IngredientInRecipe(
-                ingredient=Ingredient.objects.get(id=ingredient["id"]),
+                ingredient_id=ingredient["id"],
                 recipe=recipe,
                 amount=ingredient["amount"]
             ) for ingredient in ingredients

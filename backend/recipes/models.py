@@ -1,5 +1,3 @@
-import random
-
 from colorfield.fields import ColorField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -8,12 +6,8 @@ from django.db.models import UniqueConstraint
 from api.constans import (LIMIT_TEXT, MAX_AMOUNT, MAX_LENGHT_COLOR,
                           MAX_LENGHT_NAME, MAX_LENGHT_SLUG, MAX_LENGHT_UNIT,
                           MIN_AMOUNT)
+from recipes.utils import generate_color
 from users.models import CustomUser
-
-
-def generate_color():
-    """Рандомная генерация цвета для тега."""
-    return '#%06x' % random.randint(0, 0xFFFFFF)
 
 
 class Tag(models.Model):

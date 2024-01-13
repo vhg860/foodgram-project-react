@@ -21,11 +21,9 @@ from api.pagination import CustomPagination, NonePagination
 from api.permissions import IsOwnerOrAdminOrReadOnly
 from api.serializers import (FavoriteSerializer, IngredientSerializer,
                              RecipeCreateUpdateSerializer,
-                             RecipeDetailSerializer,
-                             ShoppingCartSerializer,
-                             SubscriptionSerializer,
+                             RecipeDetailSerializer, ShoppingCartSerializer,
                              SubscriptionInfoSerializer,
-                             TagSerializer,
+                             SubscriptionSerializer, TagSerializer,
                              UserDetailSerializer)
 from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                             ShoppingCart, Tag)
@@ -62,10 +60,9 @@ class UserViewSet(UserViewSet):
 
     def create_subscription(self, serializer):
         """Создание подписки."""
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_subscription(self, user, author):
         """Удаление подписки."""
@@ -204,59 +201,46 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self.add_to(request, pk, ShoppingCartSerializer)
         return self.delete_from(ShoppingCart, request.user, pk)
 
-    def generate_shopping_list(self, request):
-        """Генерация списка покупок в виде текстового файла."""
-        user = request.user
+    def generate_shopping_list_data(self, user):
+        """Генерация данных списка покупок."""
         if not user.shopping_cart.exists():
-            return Response(status=HTTP_400_BAD_REQUEST)
+            return None
 
         ingredients = IngredientInRecipe.objects.filter(
-            recipe__shopping_cart__user=request.user).values(
-                "ingredient__name",
-                "ingredient__measurement_unit").annotate(amount=Sum('amount'))
+            recipe__shopping_cart__user=user
+        ).values(
+            "ingredient__name",
+            "ingredient__measurement_unit"
+        ).annotate(amount=Sum('amount')).order_by("ingredient__name")
 
         today = now()
-
-        shopping_list = []
-
-        for ingredient in ingredients:
-            text = (
-                f'- {ingredient["ingredient__name"]} '
-                f'({ingredient["ingredient__measurement_unit"]}) - '
-                f'{ingredient["amount"]}'
-            )
-            shopping_list.append(text)
+        shopping_list = [
+            f'- {ingredient["ingredient__name"]} '
+            f'({ingredient["ingredient__measurement_unit"]}) - '
+            f'{ingredient["amount"]}'
+            for ingredient in ingredients
+        ]
 
         shopping_list.append(f"Foodgram ({today:%Y})")
 
         return shopping_list
 
-    @action(
-        detail=False,
-        methods=["GET"],
-        permission_classes=(IsAuthenticated,)
-    )
-    def download_shopping_cart(self, request):
-        """Загрузка списка покупок ингредиентов в виде PDF файла."""
-        shopping_list = self.generate_shopping_list(request)
-
-        if isinstance(shopping_list, Response):
-            return shopping_list
-
+    def generate_shopping_list_file(self, user, shopping_list):
+        """Генерация файла списка покупок в PDF."""
         today = now()
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
-            f'attachment; filename="{request.user.username}_shopping_list.pdf"'
+            f'attachment; filename="{user.username}_shopping_list.pdf"'
         )
 
         buffer = BytesIO()
 
         pdf = canvas.Canvas(buffer, pagesize=letter)
-        pdf.setTitle(f"{request.user.username} Shopping List")
+        pdf.setTitle(f"{user.username} Shopping List")
 
         pdf.drawString(100, 750,
-                       f"Список покупок для:{request.user.get_full_name()}")
+                       f"Список покупок для:{user.get_full_name()}")
         pdf.drawString(100, 730, f"Дата: {today:%d-%m-%Y}")
         pdf.drawString(100, 710, "Ингредиенты:")
 
@@ -274,4 +258,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
         response.write(buffer.getvalue())
         buffer.close()
 
+        return response
+
+    @action(
+        detail=False,
+        methods=["GET"],
+        permission_classes=(IsAuthenticated,)
+    )
+    def download_shopping_cart(self, request):
+        """Загрузка списка покупок ингредиентов в виде PDF файла."""
+        user = request.user
+        shopping_list_data = self.generate_shopping_list_data(user)
+
+        if shopping_list_data is None:
+            return Response(status=HTTP_400_BAD_REQUEST)
+
+        response = self.generate_shopping_list_file(user, shopping_list_data)
         return response
