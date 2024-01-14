@@ -4,9 +4,9 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from api.constans import (DUPLICATE_SUBSCRIPTION_ERROR, MIN_COOKING_TIME,
-                          MIN_INGREDIENT_COUNT, MIN_TAG_COUNT,
-                          SELF_SUBSCRIPTION_ERROR)
+from api.constans import (DUPLICATE_SUBSCRIPTION_ERROR, MAX_COUNT,
+                          MIN_COOKING_TIME, MIN_COUNT, MIN_INGREDIENT_COUNT,
+                          MIN_TAG_COUNT, SELF_SUBSCRIPTION_ERROR)
 from api.fields import Base64ImageField
 from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                             ShoppingCart, Tag)
@@ -132,8 +132,8 @@ class IngredientInRecipeCreateSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
     amount = serializers.IntegerField(
         validators=[
-            MinValueValidator(1, message='Минимум: 1 единица'),
-            MaxValueValidator(1000, message='Максимум: 1000 единиц')
+            MinValueValidator(MIN_COUNT, message='Минимум: 1 единица'),
+            MaxValueValidator(MAX_COUNT, message='Максимум: 1000 единиц')
         ]
     )
 

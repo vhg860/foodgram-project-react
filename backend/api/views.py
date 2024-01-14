@@ -201,8 +201,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self.add_to(request, pk, ShoppingCartSerializer)
         return self.delete_from(ShoppingCart, request.user, pk)
 
-    def generate_shopping_list_data(self, user):
-        """Генерация данных списка покупок."""
+    def generate_shopping_list(self, user):
+        """Генерация данных списка покупок и файла в PDF."""
         if not user.shopping_cart.exists():
             return None
 
@@ -222,12 +222,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ]
 
         shopping_list.append(f"Foodgram ({today:%Y})")
-
-        return shopping_list
-
-    def generate_shopping_list_file(self, user, shopping_list):
-        """Генерация файла списка покупок в PDF."""
-        today = now()
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
@@ -268,10 +262,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         """Загрузка списка покупок ингредиентов в виде PDF файла."""
         user = request.user
-        shopping_list_data = self.generate_shopping_list_data(user)
+        shopping_list_data = self.generate_shopping_list(user)
 
         if shopping_list_data is None:
             return Response(status=HTTP_400_BAD_REQUEST)
 
-        response = self.generate_shopping_list_file(user, shopping_list_data)
-        return response
+        return shopping_list_data
