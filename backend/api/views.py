@@ -1,13 +1,9 @@
-from io import BytesIO
-
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from rest_framework import exceptions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (SAFE_METHODS, AllowAny,
@@ -201,17 +197,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self.add_to(request, pk, ShoppingCartSerializer)
         return self.delete_from(ShoppingCart, request.user, pk)
 
-    def generate_shopping_list(self, user):
-        """Генерация данных списка покупок и файла в PDF."""
+    def generate_shopping_list(self, user, ingredients):
+        """Генерация данных списка покупок и файла в формате txt."""
         if not user.shopping_cart.exists():
             return None
-
-        ingredients = IngredientInRecipe.objects.filter(
-            recipe__shopping_cart__user=user
-        ).values(
-            "ingredient__name",
-            "ingredient__measurement_unit"
-        ).annotate(amount=Sum('amount')).order_by("ingredient__name")
 
         today = now()
         shopping_list = [
@@ -223,34 +212,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         shopping_list.append(f"Foodgram ({today:%Y})")
 
-        response = HttpResponse(content_type='application/pdf')
+        response = HttpResponse(content_type='text/plain')
         response['Content-Disposition'] = (
-            f'attachment; filename="{user.username}_shopping_list.pdf"'
+            f'attachment; filename="{user.username}_shopping_list.txt"'
         )
 
-        buffer = BytesIO()
+        response.write(f"Список покупок для: {user.get_full_name()}\n")
+        response.write(f"Дата: {today:%d-%m-%Y}\n")
+        response.write("Ингредиенты:\n")
 
-        pdf = canvas.Canvas(buffer, pagesize=letter)
-        pdf.setTitle(f"{user.username} Shopping List")
-
-        pdf.drawString(100, 750,
-                       f"Список покупок для:{user.get_full_name()}")
-        pdf.drawString(100, 730, f"Дата: {today:%d-%m-%Y}")
-        pdf.drawString(100, 710, "Ингредиенты:")
-
-        y = 690
         for line in shopping_list:
-            pdf.drawString(100, y, line)
-            y -= 20
+            response.write(f"{line}\n")
 
-        pdf.drawString(
-            100, y - 20, f"Foodgram ({today:%Y})"
-        )
-        pdf.save()
-
-        buffer.seek(0)
-        response.write(buffer.getvalue())
-        buffer.close()
+        response.write(f"Foodgram ({today:%Y})\n")
 
         return response
 
@@ -260,11 +234,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
-        """Загрузка списка покупок ингредиентов в виде PDF файла."""
+        """Загрузка списка покупок ингредиентов в виде txt файла."""
         user = request.user
-        shopping_list_data = self.generate_shopping_list(user)
 
-        if shopping_list_data is None:
+        if not user.shopping_cart.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
 
-        return shopping_list_data
+        ingredients = IngredientInRecipe.objects.filter(
+            recipe__shopping_cart__user=user
+        ).values(
+            "ingredient__name",
+            "ingredient__measurement_unit"
+        ).annotate(amount=Sum('amount')).order_by("ingredient__name")
+
+        return self.generate_shopping_list(user, ingredients)
