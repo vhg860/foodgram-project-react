@@ -39,7 +39,8 @@ POSTGRES_PASSWORD=kfoodgram_password
 DB_NAME=foodgram 
 DB_PORT=5432 
 ``` 
--[Документация](https://realtokfoodgram.ddns.net/api/docs/)
--[Проект](https://realtokfoodgram.ddns.net)
+[Документация](https://realtokfoodgram.ddns.net/api/docs/)
+
+[Проект](https://realtokfoodgram.ddns.net)
 ### Автор 
 [Дмитрий](https://github.com/vhg860)
